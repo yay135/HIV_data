@@ -114,26 +114,15 @@ class DataPreprocessing:
 
         label_list = []
 
-        # for testing
-        patient_id_list = []
 
         def encode_sample(sample):
-            hla_a_allele = sample[0]
-            hla_b_allele = sample[1]
-            pep = sample[2]
 
-            if not testing:
-                label = torch.tensor(sample[1])
-            else:
-                pid = sample[0]
+
+            label = torch.tensor(sample[1])
+            label_list.append(label)
 
             seq_tensor = self.feature_encoder(sample[0])
             seq_tensors.append(seq_tensor)
-
-            if not testing:
-                label_list.append(label)
-            else:
-                patient_id_list.append(pid)
 
         start_i = batch_index * self.batch_size
         end_i = start_i + self.batch_size
@@ -145,16 +134,11 @@ class DataPreprocessing:
             for i in random.sample(range(start_i), self.batch_size - len(seq_tensors)):
                 encode_sample(sample_set[i])
 
-        if not testing:
-            return (
+        return (
                 torch.stack(seq_tensors, dim=0),
                 torch.stack(label_list,dim=0)
             )
-        else:
-            return (
-                torch.stack(seq_tensors, dim=0),
-                patient_id_list
-            )
+
 
 
 def main():
