@@ -144,7 +144,7 @@ class LSTM_main(nn.Module):
 # main model
 
 class Model(nn.Module):
-    def __init__(self, inv_size, v_size):
+    def __init__(self, inv_size, v_size, input_channels, hidden_size, output_size, batch_size):
         super(Model, self).__init__()
 
         self.feature_compress = Post_encoder(inv_size, v_size)
