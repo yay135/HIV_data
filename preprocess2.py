@@ -1,16 +1,23 @@
 import pandas as pd
+import pickle
+from typing import Dict
 from typing import List
+import os
+
 Months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
 
 def is_Date(string: str):
-    if len(str) != 5:
-        return False
-    st0 = string[:3]
-    st1 = string[3:]
+    try:
+        if len(str) != 5:
+            return False
+        st0 = string[:3]
+        st1 = string[3:]
 
-    if st0 in Months and st1.isnumeric():
-        return True
-    return False
+        if st0 in Months and st1.isnumeric():
+            return True
+        return False
+    except:
+        return False
 
 class MonthYear:
     def __init__(self, monthyear: str):
@@ -121,77 +128,95 @@ def add_column_time_to_last(li: List[dict]):
 
 cols = list(df_tests.columns.values)
 cols.append("interval")
-df_new = pd.DataFrame(columns=cols)
-start_index = 0
-for i in groups:
-    print(f"processing {i}th records...")
-    df_ids = df_tests.loc[start_index:i-1, :]
-    print(df_ids)
-    dicts = convert_df(df_ids)
-    add_column_time_to_last(dicts)
-    for d in dicts:
-        df_new = df_new.append(d, ignore_index=True)
-    start_index = i
+# check if historical results exit:
+df_new = None
+for file_entry in os.scandir("."):
+    if file_entry.is_file() and file_entry.name == "df_new.pkl":
+        f = open(file_entry.path, "rb")
+        df_new = pickle.load(f)
 
-# binary search a RFA_ID
-def binary_search(df: pd.DataFrame, groups: List[int], l: int, r: int, id: int) -> int:
-    if r >= l:
-        m = l + (r - l) // 2
-        idx = groups[m]
-        RFA_ID = df.loc[idx, "RFA_ID"]
-        if RFA_ID == id:
-            return m
-        if RFA_ID > id:
-            return binary_search(df, groups, l, m - 1, id)
-        return binary_search(df, groups, m + 1, r, id)
-    return -1
+if df_new is None:
+    df_new = pd.DataFrame(columns=cols)
+    start_index = 0
+    for i in groups:
+        print(f"processing {i}th records...")
+        df_ids = df_tests.loc[start_index:i-1, :]
+        dicts = convert_df(df_ids)
+        add_column_time_to_last(dicts)
+        for d in dicts:
+            df_new = df_new.append(d, ignore_index=True)
+        start_index = i
+# save intermediate result
+    f = open("df_new.pkl","wb")
+    pickle.dump(df_new, f)
+    f.close()
+df_new.to_csv("df_new.csv")
+# stage one finished formatting the tests dataset
+########################################################################################################
+# the keys are the RFA-id, this is to convert all other date frame to dictionaries.
+def create_dict_from_df(df: pd.DataFrame) -> Dict[int, dict]:
+    ans = dict()
+    for i, item in df.RFA_ID.iteritems():
+        if item not in ans:
+            row = dict()
+            for name in df.columns.values:
+                val = df.loc[i, name]
+                #Date columns are not added.
+                if is_Date(val):
+                    continue
+                row[name] = df.loc[i, name]
+            ans[item] = row
+    return ans
 
-final = []
-dims = set()
-def concat(li: List[dict], di: dict):
-    for key in di:
-        val = di[key]
-        for redi in li:
-            if is_Date(val):
-                redi[val] = 0
-            else:
-                redi[key] = val
-        if is_Date(val):
-            for redi in li:
-                date0 = MonthYear(redi["TESTDATE"])
-                date1 = MonthYear(val)
-
-                if 0 <= minus_MonthYear(date0, date1) < redi["interval"]:
-                    redi[key] = 1
-
-
-groups = identify_user_rows(df_new)
-groups.insert(0, 0)
-for df in other_dfs:
-    id_res = dict()
-    print("concatenating tables...")
-    columns = df.columns.values
-    for i, item in df["RFA_ID"].iteritems():
-        tp = dict()
+# this is to convert tests data frame to a dictionary
+def convert_df_to_dict(df: pd.DataFrame) -> Dict[int, List[dict]]:
+    ans = dict()
+    for i, item in df.RFA_ID.iteritems():
+        if item not in ans:
+           ans[item] = []
+        row = dict()
         for name in df.columns.values:
-            dims.add(name)
-            tp[name] = df.loc[i, name]
-        if item in id_res:
-            idx = id_res
-        else:
-            idx = binary_search(df_new, groups, 0, len(groups) - 1, item)
-            id_res[item] = idx
+            row[name] = df.loc[i, name]
+        ans[item].append(row)
+    return ans
 
-        if idx == -1:
-            continue
 
-        if idx != len(groups) - 1:
-            concatee = list()
-            for k in range(groups[idx], groups[idx + 1]):
-                tmp = dict()
-                for name in df_new.columns.values:
-                    dims.add(name)
-                    tmp[name] = df_new.loc[k, name]
-                concatee.append(tmp)
-            concat(concatee, tp)
+# this is to merge all the other dicts to the df_new_dict
+# retrieve historical result
+df_new_dict = None
+for file_entry in os.scandir("."):
+    if file_entry.is_file() and file_entry.name == "df_new_dict.pkl":
+        f = open("df_new_dict.pkl", "wb")
+        df_new_dict = pickle.load(f)
+        f.close()
+if df_new_dict is None:
+    print("converting df new...")
+    df_new_dict = convert_df_to_dict(df_new)
+    col_names = set()
+    for df in other_dfs:
+        # this is to store all the possible column names
+        print("converting other dfs...")
+        df_dict = create_dict_from_df(df)
+        for RFA_ID, col in df_dict.items():
+            print(f"processing RFA_ID:{RFA_ID}...")
+            if RFA_ID in df_new_dict:
+                for col_name, val in col.items():
+                    col_names.add(col_name)
+                    for di in df_new_dict[RFA_ID]:
+                        for col_n in di:
+                            col_names.add(col_n)
+                        di[col_name] = val
 
+    # save intermediate results
+    f = open("df_new_dict.pkl", "wb")
+    pickle.dump(df_new_dict, f)
+    f.close()
+# creat the final dataframe
+print("merging...")
+df_final = pd.DataFrame(columns=list(col_names))
+for _, dicts in df_new_dict.items():
+    for di in dicts:
+        df_final = df_final.append(di, ignore_index=True)
+
+print("finishing...")
+df_final.to_csv("df_final.csv")
