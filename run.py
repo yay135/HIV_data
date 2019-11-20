@@ -9,7 +9,7 @@ from torch.optim import lr_scheduler
 
 from feature_preprocessing import DataPreprocessing
 from logger import log_to_file, setup_logging
-from lstm import Model, weight_initial
+from lstm_f import Model, weight_initial
 from seq_padder import Encoder
 
 #############################################################################################
@@ -44,7 +44,7 @@ def train(datapre):
     # model.to(device)
 
     # OPTIMIZER
-    optimizer = optim.SGD(model.parameters(), lr=0.01, weight_decay=0.01)
+    optimizer = optim.SGD(model.parameters(), lr=0.5, weight_decay=0.01)
     log_to_file("Optimizer", "SGD")
 
     # call backs

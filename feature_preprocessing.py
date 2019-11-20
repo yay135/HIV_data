@@ -17,12 +17,14 @@ import sys
 
 
 class DataPreprocessing:
-    def __init__(self, feature_encoder, batch_size, max_seq_length=71, test_ratio=0.1,validation_ratio=0.1, shuffle=True):
+    def __init__(self, feature_encoder, batch_size, max_seq_length=10, test_ratio=0.1,validation_ratio=0.1, label_num =1,shuffle=True):
         self.batch_size = batch_size
         self.feature_encoder = feature_encoder
         self.shuffle = shuffle
-        self.validation_ratio = validation_ratio        
+        self.validation_ratio = validation_ratio
+        self.test_ratio = test_ratio        
         self.max_seq_length = max_seq_length
+        self.label_num = label_num
 
         self.batch_index_train = 0
         self.batch_index_val = 0
@@ -52,7 +54,7 @@ class DataPreprocessing:
         visit_id = r['RFA_ID']
         # visit_id_date = visit_id_date.drop_duplicates()	
         visit_id = visit_id.value_counts()
-        visit_id = visit_id[visit_id.values>5]
+        visit_id = visit_id[visit_id.values>10]
         self.samples = visit_id.index.tolist()
         # index = visit_id.drop_duplicates().tolist()
 
@@ -73,7 +75,7 @@ class DataPreprocessing:
         """Split training and validation data randomly
         """
         train_val_count = math.ceil(len(self.samples) * (1 - self.test_ratio))
-        train_count = train_val_count * (1 - self.validation_ratio)
+        train_count = math.ceil(train_val_count * (1 - self.validation_ratio))
         self.train_samples = self.samples[:train_count]
         self.validation_samples = self.samples[train_count:train_val_count]
         self.test_samples = self.samples[train_val_count:]
@@ -108,7 +110,7 @@ class DataPreprocessing:
         self.batch_index_test = 0
      
 
-   def batch(self, batch_index, sample_set, testing=False):
+    def batch(self, batch_index, sample_set, testing=False):
         """Get a batch of samples
         """
         seq_tensors = []

@@ -104,7 +104,7 @@ class LSTM_main(nn.Module):
 
         self.act = nn.LeakyReLU()
 
-        self.linear = nn.Linear(self.hidden_size, self.output_size)
+        # self.linear = nn.Linear(self.hidden_size, self.output_size)
 
 
     def init_hidden_state(self):
@@ -124,14 +124,14 @@ class LSTM_main(nn.Module):
         out, self.hidden_states = self.lstm(seq_input, self.hidden_states)
 
         # This will ouput the hidden state of the last layer at last timestamp. The output size will be [batch_size, hidden_size]
-        temp = self.hidden_states[0][self.layers-1]
+        # temp = self.hidden_states[0][self.layers-1]
 
-        out = self.act(temp)
+        out = self.act(out)
 
         # this will output a vector of [batch_size, 2]
-        out = self.linear(out)
+        # out = self.linear(out)
 
-        return out     
+        return out.view(out.size(0),-1)     
 
 ###################################################################
 
@@ -140,7 +140,7 @@ class LSTM_main(nn.Module):
 # main model
 
 class Model(nn.Module):
-    def __init__(self, input_channels=1, hidden_size=5, output_size=1, batch_size=16, layers=2):
+    def __init__(self, input_channels=1, hidden_size=1, output_size=1, batch_size=16, layers=2):
         super(Model, self).__init__()
 
         # self.feature_compress = Post_encoder(inv_size, v_size)
