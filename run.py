@@ -7,11 +7,10 @@ import torch.nn as nn
 from torch import optim
 from torch.optim import lr_scheduler
 
-from feature_label_preprocessing_1 import DataPreprocessing
+from feature_preprocessing import DataPreprocessing
 from logger import log_to_file, setup_logging
-from lstm1 import Model, weight_initial
-
-from seq_encoding import ENCODING_METHOD
+from lstm import Model, weight_initial
+from seq_padder import Encoder
 
 #############################################################################################
 #
@@ -34,13 +33,13 @@ def batch_validation(model, data):
         return batch_train(model, data)
 
 
-def train(datapre,inv_size, v_size, input_channels, hidden_size, output_size, batch_size, layers):
+def train(datapre):
 
     # log pytorch version
     log_to_file('PyTorch version', torch.__version__)
 
     # prepare model
-    model = Model(inv_size, v_size, input_channels, hidden_size, output_size, batch_size, layers)
+    model = Model()
     weight_initial(model)
     # model.to(device)
 
@@ -113,12 +112,12 @@ def train(datapre,inv_size, v_size, input_channels, hidden_size, output_size, ba
 #############################################################################################
 
 
-def test(datapre,inv_size, v_size, input_channels, hidden_size, output_size, batch_size, layers):
+def test(datapre):
     """Test on weekly
     """
     # load and prepare model
     state_dict = torch.load('last_epoch_model.pytorch')
-    model = Model(inv_size, v_size, input_channels, hidden_size, output_size, batch_size, layers)
+    model = Model()
     model.load_state_dict(state_dict)
     # model.to(device)
     model.eval()
@@ -148,12 +147,12 @@ def main():
     setup_logging()
 
     # encoding func
-    feature_encoder = ENCODING_METHOD
+    feature_encoder = Encoder()
 
 
     datapre = DataPreprocessing(
         feature_encoder,
-        batch_size=10
+        batch_size = 16
     )
     log_to_file('Traning samples', len(datapre.train_samples))
     log_to_file('Val samples', len(datapre.validation_samples))
@@ -161,8 +160,8 @@ def main():
     log_to_file('Val steps', datapre.val_steps())
     log_to_file('Batch size', datapre.batch_size)
 
-    train(datapre,inv_size, v_size, input_channels, hidden_size, output_size, batch_size, layers)
-    test( data_pre,datapre,inv_size, v_size, input_channels, hidden_size, output_size, batch_size, layers)
+    train(datapre)
+    test (datapre)
 
 
 
