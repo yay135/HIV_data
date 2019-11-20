@@ -23,6 +23,7 @@ def batch_train(model, data):
 
     feature_seq, label = data
     pred_results = model(feature_seq)
+
     loss = nn.CrossEntropyLoss()(pred_results, label)
 
     return loss
