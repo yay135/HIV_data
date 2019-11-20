@@ -23,7 +23,7 @@ def batch_train(model, data):
 
     feature_seq, label = data
     pred_results = model(feature_seq)
-    loss = nn.MSELoss()(pred_results, label)
+    loss = nn.CrossEntropyLoss()(pred_results, label)
 
     return loss
 
@@ -44,7 +44,7 @@ def train(datapre):
     # model.to(device)
 
     # OPTIMIZER
-    optimizer = optim.SGD(model.parameters(), lr=0.5, weight_decay=0.01)
+    optimizer = optim.SGD(model.parameters(), lr = 0.5, weight_decay=0.01)
     log_to_file("Optimizer", "SGD")
 
     # call backs
