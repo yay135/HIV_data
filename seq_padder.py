@@ -47,10 +47,10 @@ class Encoder:
                 ans[j] = t
 
         labels = [ans[i] for i in range(1, len(ans))]
-        labels.append(rows[-1]["interval"])
+        labels.append(rows[-1]["interval_r"])
         
         matrix = torch.FloatTensor([[ans[i]] for i in range(0, len(ans))])
-        labs = torch.LongTensor(labels)
+        labs = torch.FloatTensor(labels)
         return matrix, labs
 
 encoder = Encoder()
