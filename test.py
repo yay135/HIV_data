@@ -57,7 +57,7 @@ for index, row in df_labels.iterrows():
     f_di = {}
     f_di[id] = label
     for encoder in ls_encoder:
-        di = encoder.mean_features(id)
+        di = encoder.select_id_categorize(id)
         f_di.update(di)
 
     df_f = df_f.append(f_di, ignore_index=True)
